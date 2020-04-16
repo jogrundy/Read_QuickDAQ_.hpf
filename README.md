@@ -5,4 +5,4 @@ file contains function 'write_info_and_csv_from_hpf' which takes a filename as i
 
 This was originally written by translating the matlab code from https://www.datatranslation.de/Download/Demos/Hpf2Matlab_Rev2_0.m
 
-However subsequent refactoring and testing have rendered it a somewhat different program. 
+
