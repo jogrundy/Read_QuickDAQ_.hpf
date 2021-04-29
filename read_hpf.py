@@ -3,7 +3,8 @@ import os
 import numpy as np
 import array
 import datetime
-
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
 
 
 class Hpf():
@@ -14,41 +15,40 @@ class Hpf():
 
     @staticmethod
     def parse_header(f, pos, off):
-        creator_ID = f.read(4).decode('CP437')
-        print('creator_ID:', creator_ID)
+        creator_ID = f.read(4).decode('CP437') #CP347 to decode the char data on this file. :-) IBM
+        # print('creator_ID:', creator_ID)
         file_version =  int.from_bytes(f.read(8), byteorder='little')
-        print('File Version:', file_version)
+        # print('File Version:', file_version)
         index_chunk_offset =  int.from_bytes(f.read(8), byteorder='little')
-        print('index chunk offset:', index_chunk_offset)
+        # print('index chunk offset:', index_chunk_offset)
         XML_data = f.read(off - (f.tell()-pos)).decode('CP437')
-        print('xml data has length:', len(XML_data))
+        # print('xml data has length:', len(XML_data))
         start = XML_data.find('<RecordingDate>')
         stop = XML_data.find('</RecordingDate>')
         fdt = XML_data[start +15: stop-1];
         fdt = datetime.datetime.strptime(fdt, '%Y/%m/%d %H:%M:%S.%f')
-        print('RecordingDate:', fdt)
+        # print('RecordingDate:', fdt)
         return creator_ID, file_version, index_chunk_offset, fdt
 
     @staticmethod
     def parse_chan_inf(f, pos, off):
         group_ID = int.from_bytes(f.read(4), byteorder='little')
-        print('group ID:', group_ID)
+        # print('group ID:', group_ID)
         num_channels = int.from_bytes(f.read(4), byteorder='little')
-        print('num_channels:', num_channels)
-        print( 'off = {}, f.tell()={}, pos = {}'.format(off, f.tell(), pos))
+        # print('num_channels:', num_channels)
+        # print( 'off = {}, f.tell()={}, pos = {}'.format(off, f.tell(), pos))
         XML_data = f.read(off - (f.tell()-pos)).decode('CP437')
-        print('xml data has length:', len(XML_data))
+        # print('xml data has length:', len(XML_data))
         idx = 0
         chan_info = []
         for i in range(num_channels):
             chan_dict={}
-            print('********** Information for channel {} ***********'.format(i+1))
+            # print('********** Information for channel {} ***********'.format(i+1))
             for info_str in Hpf.chan_info_lst:
                 start = XML_data.find('<'+info_str+'>', idx)
                 stop = XML_data.find('</'+info_str+'>', idx)
 
                 inf = XML_data[start +len(info_str)+2: stop];
-                print(info_str+':', inf)
                 idx = stop
                 chan_dict[info_str] = inf
             chan_info.append(chan_dict)
@@ -66,7 +66,10 @@ class Hpf():
         for count in range(chan_data_count):
             arr[count, 0] = int.from_bytes(f.read(4), byteorder='little') # channel Offset
             arr[count, 1] = int.from_bytes(f.read(4), byteorder='little') # channel length
-            f.seek(arr[count, 0] - (32 + 8*chan_data_count) + f.tell())
+
+        pos = f.tell() # needs to use the offset from the same start position for each channel.
+        for count in range(chan_data_count):
+            f.seek(arr[count, 0] -(32 +8*chan_data_count) + pos)
             dat = array.array('d',f.read(arr[count,1]))
             chan_data[count].append(dat)
         return chan_data
@@ -87,23 +90,29 @@ class Hpf():
                 chunkID = int.from_bytes(f.read(8), byteorder='little')
                 off = int.from_bytes(f.read(8), byteorder='little')
                 # print('file place index = {}, off = {}, chunkID = {}'.format(f.tell(), off, chunkID))
-                if chunkID == 4096:
+                if chunkID == 4096: # Header chunk ID 0x1000
+                    print('Parsing Header information')
                     creator_ID, file_version, index_chunk_offset, fdt = Hpf.parse_header(f, pos, off)
 
-                elif chunkID == 8192:
+                elif chunkID == 8192: # Channel Information chunk ID 0x2000
                     print('Parsing channel information')
                     num_channels, chan_info = Hpf.parse_chan_inf(f, pos, off)
                     chan_data = [[] for i in range(num_channels)]
-
-                elif chunkID == 28672:
+                elif chunkID == 16384: #  chunk ID 0x4000 not expected
+                    print('In event definition chunk')
+                elif chunkID == 20840: # Chunk ID 0x5000 not expected
+                    print('In event data chunk')
+                elif chunkID == 24576: # ChunkID 0x6000 not always present
+                    print('In Index chunk')
+                elif chunkID == 28672: # Chunk ID 0x7000 ? not in documentation.
                     print('In undocumented part')
                     f.seek(f.tell()+7)
 
-                elif chunkID == 12288:
+                elif chunkID == 12288: # Chunk ID 0x3000
                     chan_data = Hpf.parse_data(f, chan_data)
 
                 else:
-                    # print('at end of if statements, chunk ID = ',chunkID)
+                    print('at end of if statements, chunk ID = ',chunkID)
                     break
 
                 f.seek(off + pos)
@@ -143,9 +152,17 @@ def write_info_and_csv_from_hpf(filename, output_filename=None):
                 f.write(key + ':\t' + hpf.chan_info[chan][key] + '\n')
     header = ''.join(['channel {}, '.format(x+1)  for x in range(hpf.num_channels)])
     header = header[:-2]+'\n'
-    print(hpf.data[0][0])
+
+    hpf.data = np.array(hpf.data).T
+    n,c = hpf.data.shape
+
     with open(out_csv,'w') as f:
         f.write(header)
+        for i in range(n):
+            dat = ''.join(['%0.8f, '])*c%tuple(hpf.data[i,:])
+            dat = dat[:-3]+'\n'
+            f.write(dat)
 
-        for d in hpf.data[0]:
-            f.write('{}\n'.format(d))
+if __name__ == '__main__':
+    filename = os.path.expanduser('~') +'/Data/ping/0401_316L_dry/0104_texture_1/DAQ/210401_316L_texture_1-2.hpf'
+    write_info_and_csv_from_hpf(filename)
