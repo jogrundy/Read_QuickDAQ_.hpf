@@ -91,11 +91,11 @@ class Hpf():
                 off = int.from_bytes(f.read(8), byteorder='little')
                 # print('file place index = {}, off = {}, chunkID = {}'.format(f.tell(), off, chunkID))
                 if chunkID == 4096: # Header chunk ID 0x1000
-                    print('Parsing Header information')
+                    # print('Parsing Header information')
                     creator_ID, file_version, index_chunk_offset, fdt = Hpf.parse_header(f, pos, off)
 
                 elif chunkID == 8192: # Channel Information chunk ID 0x2000
-                    print('Parsing channel information')
+                    # print('Parsing channel information')
                     num_channels, chan_info = Hpf.parse_chan_inf(f, pos, off)
                     chan_data = [[] for i in range(num_channels)]
                 elif chunkID == 16384: #  chunk ID 0x4000 not expected
@@ -105,20 +105,29 @@ class Hpf():
                 elif chunkID == 24576: # ChunkID 0x6000 not always present
                     print('In Index chunk')
                 elif chunkID == 28672: # Chunk ID 0x7000 ? not in documentation.
-                    print('In undocumented part')
+                    # print('In undocumented part')
                     f.seek(f.tell()+7)
 
                 elif chunkID == 12288: # Chunk ID 0x3000
                     chan_data = Hpf.parse_data(f, chan_data)
-
+                elif chunkID == 32768: # Chunk ID 0x8000
+                    print('In undocumented part')
+                    # f.seek(f.tell()+7)
+                elif chunkID == 36864: # Chunk ID 0x9000
+                    print('In undocumented part')
+                    # f.seek(f.tell()+7)
+                elif chunkID == 40960: # Chunk ID 0xA000
+                    print('In undocumented part')
+                    # f.seek(f.tell()+7)
                 else:
-                    print('at end of if statements, chunk ID = ',chunkID)
+                    # print('at end of if statements, chunk ID = ',chunkID)
                     break
 
                 f.seek(off + pos)
                 pos = f.tell()
 
             data_arr = [np.concatenate(x) for x in chan_data] # list of long arrays
+            data_arr = np.array(data_arr).T
             #one per channel
             return Hpf(fname, creator_ID, fdt, num_channels, chan_info, data_arr)
 
@@ -153,7 +162,7 @@ def write_info_and_csv_from_hpf(filename, output_filename=None):
     header = ''.join(['channel {}, '.format(x+1)  for x in range(hpf.num_channels)])
     header = header[:-2]+'\n'
 
-    hpf.data = np.array(hpf.data).T
+
     n,c = hpf.data.shape
 
     with open(out_csv,'w') as f:
@@ -164,5 +173,5 @@ def write_info_and_csv_from_hpf(filename, output_filename=None):
             f.write(dat)
 
 if __name__ == '__main__':
-    filename = os.path.expanduser('~') +'/Data/ping/0401_316L_dry/0104_texture_1/DAQ/210401_316L_texture_1-2.hpf'
+    filename = os.path.expanduser('~') +'/Data/ping/Tool steel/210518_BK_hard_0/210518_BK_hard_0_1_100-15.hpf'
     write_info_and_csv_from_hpf(filename)
