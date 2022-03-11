@@ -8,7 +8,10 @@ This was originally written by translating the matlab code from https://www.data
 To use:
 
 to get the hpf object that contains all the data, use:
->>> hpf = Hpf.init_from_hpf(filename)
+> hpf = Hpf.init_from_hpf(filename)
+
+you can then read the data directly from the hpf object, i is the channel number
+> data = hpf.data[:,i]
 
 
 
