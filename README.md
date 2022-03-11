@@ -5,4 +5,10 @@ File contains function 'write_info_and_csv_from_hpf' which takes a filename as i
 
 This was originally written by translating the matlab code from https://www.datatranslation.de/Download/Demos/Hpf2Matlab_Rev2_0.m
 
+To use:
+
+to get the hpf object that contains all the data, use:
+>>> hpf = Hpf.init_from_hpf(filename)
+
+
 
