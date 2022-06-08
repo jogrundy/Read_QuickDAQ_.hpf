@@ -1,5 +1,5 @@
 import PySimpleGUI as sg
-import csv, os
+import os
 import read_hpf
 
 working_directory = os.getcwd()
@@ -7,6 +7,9 @@ working_directory = os.getcwd()
 layout = [
         [
             sg.Text('choose a .hpf file')
+            ],
+        [
+            sg.Text()
             ],
         [
             sg.InputText(key='-FILE_PATH-'),

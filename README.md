@@ -13,5 +13,24 @@ to get the hpf object that contains all the data, use:
 you can then read the data directly from the hpf object, i is the channel number
 > data = hpf.data[:,i]
 
+# gui.py
 
+small gui that implements the function of the read_hpf.py script
+
+fairly straightforward operation, just run 
+```
+python gui.py
+```
+in the directory containing the project and navigate around to select the .hpf files you wish to convert.
+
+Click 'convert' to conver the file then 'exit' to end program or continue converting
+more files
+
+### modules needed
+* os
+* numpy
+* PySimpleGUI
+* array
+* datetime
+* register_matplotlib_converters
 
