@@ -2,6 +2,12 @@ import PySimpleGUI as sg
 import os
 import read_hpf
 
+# Shoutout to Mr. Amith on youtube! 
+#
+# https://www.youtube.com/watch?v=ykQ3LFiWhm8&t=606s
+# 
+# Great video for getting a gui put together
+
 working_directory = os.getcwd()
 
 layout = [
